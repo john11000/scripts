@@ -3,11 +3,11 @@ import json
 import subprocess
 import concurrent.futures
 import shutil
-
+import re
 # Ruta a la carpeta "Documentos" en tu sistema (puede variar según el sistema operativo)
 ruta_documentos = os.path.expanduser("~" + os.sep + "Documents")
 animes = []
-carpetas_excluidas = ['My Music', 'My Pictures', 'My Videos', 'desktop.ini']
+carpetas_excluidas = ['My Music', 'My Pictures', 'My Videos']
 
 def comprimir_y_convertir_a_m3u8(nombre_video, salida):
     nombre_video_salida = nombre_video.splt(".")[-2].split(" ")[-1]
@@ -32,39 +32,49 @@ def procesar_multiples_videos(lista_videos, salida):
         executor.map(comprimir_y_convertir_a_m3u8, lista_videos, salida)
 
 
-def ordenar_episodios(episodios, aux_episodios, sub_ruta_episodios):
+def ordenar_episodios(episodios, aux_episodios = {}, sub_ruta_episodios = ""):
     episodios_cantidad = 0
     mp4s = []
+    numeros_de_episodios = []
+    nombre_episodio = ""
     for episodio in episodios:
         # Verificar si el archivo es un .mp4
         if episodio.endswith(".mp4"):
+            episodio_numero = re.findall(r"Episode (\d+\.?\d*)", episodio)[0]
+            numeros_de_episodios.append(episodio_numero)
             mp4s.append(sub_ruta_episodios + os.sep + episodio)
             episodios_cantidad = episodios_cantidad + 1
-            
-    for episodio_pertenece in range(episodios_cantidad):
-        numero = episodio_pertenece + 1
-        aux_episodios[str(numero)] = {
-            "video" : f"episodio-{numero}.mp4",
+            nombre_episodio = episodio.split(episodio_numero)[0]
+    
+    numeros_de_episodios = sorted(numeros_de_episodios)
+  
+    for episodio_pertenece in numeros_de_episodios:
+        aux_episodios[str(episodio_pertenece)] = {
+            "video" : f"{nombre_episodio} {episodio_pertenece}.mp4",
             "subtitulos": []
          }
+        
     return aux_episodios, mp4s
 
 def ordenar_carpetas(episodios, ruta, datos):
     nombre_anime = "";
     
-    for directorio in range(len(episodios)):
-        directorio_numero = directorio + 1
-        directorio_numero = str(directorio_numero)
+    for directorio in episodios:
+        directorio_numero = re.findall(r"Episode (\d+\.?\d*)", directorio)[0]
         ruta_destino = ruta + os.sep + "episodio-" + directorio_numero
-        os.makedirs(ruta_destino)
-        os.makedirs(ruta_destino + os.sep + "subtitulos")
-        os.makedirs(ruta_destino + os.sep + "hls")
-        datos[directorio_numero]['video']
-        for subtitulo in datos[directorio_numero]['subtitulos']:
-            nombre_anime = ruta + os.sep + subtitulo.split(".")[0] + ".mp4"
-            shutil.move(ruta + os.sep + subtitulo , ruta_destino + os.sep + "subtitulos")
-        
-        shutil.move(nombre_anime , ruta_destino + os.sep + "hls")
+        if os.path.exists(ruta_destino) == False:
+
+            os.makedirs(ruta_destino)
+            os.makedirs(ruta_destino + os.sep + "subtitulos")
+            os.makedirs(ruta_destino + os.sep + "hls")
+            datos[directorio_numero]['video']
+            nombre_anime = ruta + os.sep + directorio
+
+            for subtitulo in datos[directorio_numero]['subtitulos']:
+                shutil.move(ruta + os.sep + subtitulo , ruta_destino + os.sep + "subtitulos")
+            
+            print(nombre_anime)
+            shutil.move(directorio , ruta_destino + os.sep + "hls")
         
         #os.rmdir(ruta + os.sep + "episodio-" + str(directorio_numero))
 
@@ -87,7 +97,7 @@ if os.path.exists(ruta_documentos):
                 for sub_carpeta in sub_carpetas_temporadas:
                     temporadas = anime["temporadas"]
                     temporadas.append({
-                        "id" : idx,
+                        "id" : idx + 1,
                         "episodios": []
                     })
                     sub_ruta_episodios = sub_ruta_temporada + os.sep + sub_carpeta
@@ -99,7 +109,7 @@ if os.path.exists(ruta_documentos):
                         #procesar_multiples_videos(mp4s, sub_ruta_episodios)
                         for episodio in episodios:
                             if episodio.split('.')[-1] == "ass":
-                                episodio_numero = episodio.split(".")[0].split(" ")[-1]
+                                episodio_numero = re.findall(r"Episode (\d+\.?\d*)", episodio)[0]
                                 aux_episodios_1[episodio_numero]["subtitulos"].append(episodio)
                                 
                         temporadas[idx]["episodios"].append(aux_episodios_1)
