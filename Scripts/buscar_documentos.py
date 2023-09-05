@@ -31,6 +31,11 @@ def procesar_multiples_videos(lista_videos, salida):
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(lista_videos)) as executor:
         executor.map(comprimir_y_convertir_a_m3u8, lista_videos, salida)
 
+def buscar_numero_capitulo(capitulo):
+    if re.findall(r"Episode (\d+\.?\d*)", capitulo):
+        return re.findall(r"Episode (\d+\.?\d*)", capitulo)[0]
+    else:
+        return "Especial"
 
 def ordenar_episodios(episodios, aux_episodios = {}, sub_ruta_episodios = ""):
     episodios_cantidad = 0
@@ -40,7 +45,7 @@ def ordenar_episodios(episodios, aux_episodios = {}, sub_ruta_episodios = ""):
     for episodio in episodios:
         # Verificar si el archivo es un .mp4
         if episodio.endswith(".mp4"):
-            episodio_numero = re.findall(r"Episode (\d+\.?\d*)", episodio)[0]
+            episodio_numero = buscar_numero_capitulo(episodio)
             numeros_de_episodios.append(episodio_numero)
             mp4s.append(sub_ruta_episodios + os.sep + episodio)
             episodios_cantidad = episodios_cantidad + 1
@@ -60,7 +65,7 @@ def ordenar_carpetas(episodios, ruta, datos):
     nombre_anime = "";
     
     for directorio in episodios:
-        directorio_numero = re.findall(r"Episode (\d+\.?\d*)", directorio)[0]
+        directorio_numero = buscar_numero_capitulo(directorio)
         ruta_destino = ruta + os.sep + "episodio-" + directorio_numero
         if os.path.exists(ruta_destino) == False:
 
@@ -109,7 +114,7 @@ if os.path.exists(ruta_documentos):
                         #procesar_multiples_videos(mp4s, sub_ruta_episodios)
                         for episodio in episodios:
                             if episodio.split('.')[-1] == "ass":
-                                episodio_numero = re.findall(r"Episode (\d+\.?\d*)", episodio)[0]
+                                episodio_numero = buscar_numero_capitulo(episodio)
                                 aux_episodios_1[episodio_numero]["subtitulos"].append(episodio)
                                 
                         temporadas[idx]["episodios"].append(aux_episodios_1)
