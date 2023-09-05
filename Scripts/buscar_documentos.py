@@ -124,5 +124,28 @@ if os.path.exists(ruta_documentos):
 else:
     print("La carpeta 'Documents' no existe en esta ubicación.")
 
-with open("db1.json", "w") as f:
-    json.dump({ "a": animes }, f)
+#with open("db1.json", "w") as f:
+#    json.dump({ "a": animes }, f)
+
+# Directorio donde se buscarán los archivos MP4 de manera recursiva
+directory = os.path.expanduser("~/Documents")
+
+# Función para normalizar una cadena eliminando espacios y reemplazando por guiones bajos
+def normalize_string(s):
+    return re.sub(r'[^\w\s.-]', '', s).replace(' ', '_')
+
+# Recorrer el directorio de forma recursiva
+for root, dirs, files in os.walk(directory):
+    for file_name in files:
+        if file_name.endswith(".mp4"):
+            file_path = os.path.join(root, file_name)
+            # Normalizar el nombre del archivo y toda la ruta
+            normalized_name = normalize_string(file_name)
+            normalized_path = os.path.join(root, normalized_name)
+
+            # Renombrar el archivo con la ruta normalizada
+            try:
+                os.rename(file_path, normalized_path)
+                print(f"Renombrado: {file_path} -> {normalized_path}")
+            except Exception as e:
+                print(f"No se pudo renombrar {file_path}: {str(e)}")
